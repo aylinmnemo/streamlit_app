@@ -45,6 +45,5 @@ streamlit_app/
 ├── app.py               # main Streamlit code
 ├── Ref.xlsx             # reference ranges for metabolites
 ├── requirements.txt     # Python dependencies
-├─── README.md           # project description
-└── runtime.txt          # Python 3.12 runtime for st-aggrid compatibility
+└─── README.md           # project description
 ```
