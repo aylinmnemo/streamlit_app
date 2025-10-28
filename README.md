@@ -40,10 +40,17 @@ http://localhost:8501
 
 ## Project Structure
 ```
+
 streamlit_app/
 │
-├── app.py               # main Streamlit code
-├── Ref.xlsx             # reference ranges for metabolites
+├── app.py               # Streamlit controller orchestrating views
+├── Ref.xlsx             # Reference ranges for metabolites
 ├── requirements.txt     # Python dependencies
-└─── README.md           # project description
+├── README.md            # Project description and usage
+└── src/
+    ├── __init__.py      # Marks src/ as a Python package to enable clean imports
+    ├── config.py        # Central constants, color palette, enums, file paths
+    ├── data.py          # File loading (Ref.xlsx and patient data), normalization helpers, session keys
+    ├── services.py      # Core business logic: PatientSnapshot, caching, sorting, chart payload prep
+    └── ui.py            # AgGrid + Plotly rendering utilities used by app.py
 ```
