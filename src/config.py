@@ -1,22 +1,18 @@
-from __future__ import annotations
-
 import json
 import re
 from enum import Enum
 from pathlib import Path
 from typing import Sequence
 
-# --------------------------------------------------------------------------------------
+
 # Paths & caching
-# --------------------------------------------------------------------------------------
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 REF_PATH = BASE_DIR / "Ref.xlsx"
 PATIENT_CACHE_TTL = 300
 
-# --------------------------------------------------------------------------------------
-# Timepoints & columns
-# --------------------------------------------------------------------------------------
 
+# Timepoints & columns
 
 class TimePoint(Enum):
     T1 = ("Time-point 1", "raw_T1")
@@ -42,9 +38,9 @@ REF_MAX_COLUMN = "ref_max"
 REQUIRED_SAMPLE_COLUMNS = ("Код", "Группа")
 BASE_CODE_COLUMN = "__base_code"
 
-# --------------------------------------------------------------------------------------
+
 # Display constants
-# --------------------------------------------------------------------------------------
+
 PLACEHOLDER = "—"
 EPS = 1e-12
 
@@ -68,9 +64,9 @@ AGGRID_THEME = "balham"
 
 COMPARISON_BUTTON_LABEL = "➕ Добавить пациента для сравнения"
 
-# --------------------------------------------------------------------------------------
+
 # Parsing helpers
-# --------------------------------------------------------------------------------------
+
 GROUP_KEYWORDS: dict[TimePoint, tuple[str, ...]] = {
     TimePoint.T1: ("до",),
     TimePoint.T2: ("после",),
@@ -82,9 +78,9 @@ BASE_CODE_SUFFIX_PATTERN = re.compile(r"-\d+[A-Za-z()]*$")
 
 TP_JS_MAP_JSON = json.dumps(RAW_COLUMNS)
 
-# --------------------------------------------------------------------------------------
+
 # AgGrid styling
-# --------------------------------------------------------------------------------------
+
 SELECTION_OVERLAY = "inset 0 0 0 9999px rgba(204,229,255,0.45)"
 TIMEPOINT_CELL_STYLE_JSON = json.dumps(
     {"border": "1px solid #666", "textAlign": "center", "fontSize": "13px"}
@@ -120,10 +116,8 @@ function(params){
 }
 """
 
-# --------------------------------------------------------------------------------------
-# Sorting modes
-# --------------------------------------------------------------------------------------
 
+# Sorting modes
 
 class SortMode(str, Enum):
     ALPHA = "По алфавиту"

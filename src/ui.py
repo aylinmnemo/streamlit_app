@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any, Iterable, Sequence
 
 import pandas as pd
@@ -53,10 +51,7 @@ from src.services import (
 )
 
 
-# --------------------------------------------------------------------------------------
 # AgGrid helpers
-# --------------------------------------------------------------------------------------
-
 
 def _js_cell_style(style_json: str) -> JsCode:
     return JsCode(
