@@ -4,7 +4,177 @@ from src.config import METABOLITE_COLUMN, REF_PATH
 from src.data import get_patient_codes, load_reference_data, load_sample, session_key
 from src.services import cached_patient_table
 from src.ui import render_multi_patient_mode, render_risk_overview_chart, render_table_and_plot
+from src.indices import calculate_full_index_summary
 
+def render_indices_mode(sample) -> None:
+   
+    try:
+        summary = calculate_full_index_summary(sample)
+    except Exception as exc:
+        st.error(f"Не удалось рассчитать индексы: {exc}")
+        return
+
+    st.subheader("Интегральные индексы восстановления")
+
+    st.write("ORP отражает качество восстановления через 24 часа после нагрузки.")
+    st.write("ΔORP отражает выраженность острого метаболического ответа сразу после нагрузки.")
+
+    if summary.empty:
+        st.warning("Не удалось получить таблицу индексов.")
+        return
+
+    patient_list = summary["Пациент"].dropna().astype(str).tolist()
+
+    if not patient_list:
+        st.warning("Не удалось определить участников для расчета индексов.")
+        return
+
+    st.sidebar.header("Участники для индексов")
+    st.sidebar.caption("Отметьте участников для анализа:")
+
+    selected_patients = []
+
+    for patient in patient_list:
+        checkbox_key = session_key("index_patient", "choice", patient)
+
+        if checkbox_key not in st.session_state:
+            st.session_state[checkbox_key] = patient == patient_list[0]
+
+        if st.sidebar.checkbox(patient, key=checkbox_key):
+            selected_patients.append(patient)
+
+    if not selected_patients:
+        st.warning("Отметьте хотя бы одного участника для отображения индексов.")
+        return
+
+    selected_summary = summary[
+        summary["Пациент"].astype(str).isin(selected_patients)
+    ].copy()
+
+    def format_metric(value):
+        try:
+            if value != value:
+                return "—"
+            return f"{float(value):.2f}"
+        except Exception:
+            return "—"
+
+    subindex_columns = [
+        "Пациент",
+        "ERI",
+        "AARI",
+        "NRI",
+        "CRI",
+        "ORP",
+        "ERI_Δ",
+        "AARI_Δ",
+        "NRI_Δ",
+        "CRI_Δ",
+        "ΔORP",
+    ]
+
+    existing_subindex_columns = [
+        column for column in subindex_columns
+        if column in selected_summary.columns
+    ]
+
+    if len(selected_patients) == 1:
+        patient_row = selected_summary.iloc[0]
+
+        st.markdown("#### Итоговые индексы участника")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                label="ORP — индекс регенерационного потенциала",
+                value=format_metric(patient_row["ORP"]),
+            )
+            st.caption(patient_row["Интерпретация ORP"])
+
+        with col2:
+            st.metric(
+                label="ΔORP — индекс динамического отклика",
+                value=format_metric(patient_row["ΔORP"]),
+            )
+            st.caption(patient_row["Интерпретация ΔORP"])
+
+        st.markdown("#### Подиндексы участника")
+
+        st.dataframe(
+            selected_summary[existing_subindex_columns],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.markdown("#### График подиндексов")
+
+        chart_data = {
+            "Подиндекс": ["ERI", "AARI", "NRI", "CRI"],
+            "ORP": [
+                patient_row["ERI"],
+                patient_row["AARI"],
+                patient_row["NRI"],
+                patient_row["CRI"],
+            ],
+            "ΔORP": [
+                patient_row["ERI_Δ"],
+                patient_row["AARI_Δ"],
+                patient_row["NRI_Δ"],
+                patient_row["CRI_Δ"],
+            ],
+        }
+
+        st.bar_chart(
+            chart_data,
+            x="Подиндекс",
+            y=["ORP", "ΔORP"],
+        )
+
+    else:
+        st.markdown("#### Сравнение выбранных участников")
+
+        st.dataframe(
+            selected_summary[existing_subindex_columns],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.markdown("#### Сравнение итоговых индексов ORP и ΔORP")
+
+        comparison_chart = selected_summary[
+            ["Пациент", "ORP", "ΔORP"]
+        ].copy()
+
+        st.bar_chart(
+            comparison_chart,
+            x="Пациент",
+            y=["ORP", "ΔORP"],
+        )
+
+        st.markdown("#### Сравнение подиндексов ORP")
+
+        orp_subindex_chart = selected_summary[
+            ["Пациент", "ERI", "AARI", "NRI", "CRI"]
+        ].copy()
+
+        st.bar_chart(
+            orp_subindex_chart,
+            x="Пациент",
+            y=["ERI", "AARI", "NRI", "CRI"],
+        )
+
+        st.markdown("#### Сравнение подиндексов ΔORP")
+
+        delta_subindex_chart = selected_summary[
+            ["Пациент", "ERI_Δ", "AARI_Δ", "NRI_Δ", "CRI_Δ"]
+        ].copy()
+
+        st.bar_chart(
+            delta_subindex_chart,
+            x="Пациент",
+            y=["ERI_Δ", "AARI_Δ", "NRI_Δ", "CRI_Δ"],
+        )
 
 def _render_patient_sidebar(patient_codes: list[str]) -> list[str]:
     """Показать чекбоксы пациентов и вернуть выбранные коды."""
@@ -55,7 +225,18 @@ def main() -> None:
     else:
         st.sidebar.success("Файл данных успешно загружен.")
 
+    analysis_section = st.sidebar.radio(
+        "Раздел приложения:",
+        ["Таблицы и риски", "Индексы восстановления"],
+        key="analysis_section",
+    )
+
+    if analysis_section == "Индексы восстановления":
+        render_indices_mode(sample)
+        return
+
     patient_codes = get_patient_codes(sample)
+    
     if not patient_codes:
         st.warning("В выгрузке не найдено пациентов.")
         st.stop()

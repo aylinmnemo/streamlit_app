@@ -168,17 +168,36 @@ def load_reference_data(path: Path) -> tuple[pd.Series, pd.Series, dict[str, lis
 
 def _base_patient_code(code: Any) -> str:
     text = str(code).strip()
+
     if not text or text.lower() == "nan":
         return ""
+
+    timepoint_match = re.search(
+        r"[-–—_]\s*[ТT]\s*[0-2]\s*$",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if timepoint_match:
+        base = text[: timepoint_match.start()].strip(" -–—_")
+        if base:
+            return base
+
     suffix_match = CODE_SUFFIX_PATTERN.search(text)
+
     if suffix_match:
         suffix_digits = suffix_match.group(1)
+
         if suffix_digits in SUFFIX_TO_TIMEPOINT:
             base = text[: suffix_match.start()].rstrip("-").strip()
+
             if base:
                 return base
+
+    # Старая логика для кодов с несколькими дефисами
     if text.count("-") >= 2:
         return BASE_CODE_SUFFIX_PATTERN.sub("", text)
+
     return text
 
 
